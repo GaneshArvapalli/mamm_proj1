@@ -19,27 +19,63 @@
 %
 
 
-% MAKE UP SOME BAD RESULTS FOR TESTING :)
+% Initializing variables
 estdiag = zeros(1,2);
 estmaskleft = zeros(size(mammoimgleft));
 estmaskright = zeros(size(mammoimgright));
 
 %% PUT IN YOUR DIAGNOSIS AND SEGMENTATION CODE BELOW!
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% My tesging code randomly diagnose the images and labels 10% of the pixels
-% as 1 if the diagnosis is not healthy.
-diag = [0,1,2];
-estpos = randi(length(diag),[1,2]);
-estdiag = diag(estpos);
-% Left side
-if estdiag(1) ~= 0
-    estmaskleft( rand(size(estmaskleft)) < 0.1 ) = 1;
+
+% get intensity frequencies for both images
+[l_counts,~] = imhist(mammoimgleft);
+[r_counts,~] = imhist(mammoimgright);
+
+% get sorted peak intensity frequencies for both image
+[sort_lpk,sort_lpk_loc] = findpeaks(l_counts,'SortStr','descend');
+[sort_rpk,sort_rpk_loc] = findpeaks(r_counts,'SortStr','descend');
+
+% ignore any peak intensity frequencies that are black
+sort_lpk(sort_lpk_loc < 50) = [];
+sort_rpk(sort_rpk_loc < 50) = [];
+sort_lpk_loc(sort_lpk_loc < 50) = [];
+sort_rpk_loc(sort_rpk_loc < 50) = [];
+
+% determine if the breast is healthy
+if abs(sort_lpk(1)-sort_rpk(1))/min(sort_lpk(1),sort_rpk(1)) < 0.07
+    return
 end
-% Right side
-if estdiag(2) ~= 0
-    estmaskright( rand(size(estmaskright)) < 0.1 ) = 1;
+
+% get peak intensity frequencies for both images
+[lpk,lpk_loc] = findpeaks(l_counts);
+[rpk,rpk_loc] = findpeaks(r_counts);
+
+% ignore any peak intensity frequencies that are too dark
+lpk_loc(lpk_loc < 100) = [];
+rpk_loc(rpk_loc < 100) = [];
+
+% determine which intensity the tumor is
+[l_max,l_i] = max(lpk_loc([2:end])-lpk_loc([1:end-1]));
+[r_max,r_i] = max(rpk_loc([2:end])-rpk_loc([1:end-1]));
+
+% determine which breast has the cancer
+lpk_m = mean(sort_lpk([1:5]));
+rpk_m = mean(sort_rpk([1:5]));
+left = 0;
+if rpk_m > lpk_m
+    left = 1;
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% determine whether the tumor is malignant or a cancer
+dis = abs(l_max-r_max)/min(l_max,r_max);
+if dis > 0.7
+    estdiag = [left,(1-left)];
+else
+    estdiag = [left*2,(1-left)*2];
+end
 
-
+% update the estimated mask
+if left == 1
+    estmaskleft(mammoimgleft > lpk_loc(l_i)) = 1;
+else
+    estmaskright(mammoimgright > rpk_loc(r_i)) = 1;
+end

@@ -1,11 +1,12 @@
 % Evaluation script project 1
-
-clear all;
 clc;
+clearvars;
 
 %% Read file lists for and true segmentations
-datatopdir = './MammoTesting/';  
-sublistfile = fullfile(['./Project1ListTesting.xlsx']);
+datatopdir = './MammoTraining/';  
+sublistfile = fullfile(['./Project1List.xlsx']);
+% datatopdir = './MammoTesting/';  
+% sublistfile = fullfile(['./Project1ListTesting.xlsx']);
 
 [~,~,alllist] = xlsread(sublistfile);
 sublist = alllist(2:end,1);
@@ -19,11 +20,11 @@ truediag = cell2mat(truediag);
 dices = zeros(numsubs,2);       % ovelap measure
 estdiag = zeros(numsubs,2);     % diagnosis measure
 times = zeros(numsubs,1);       % time measure
-for i =8:numsubs        % for each subject
+for i = 1:numsubs               % for each subject
     
     mammoimgleft = imread([datatopdir,sublist(i,:) '_LEFT.png']);
     mammoimgright = imread([datatopdir,sublist(i,:) '_RIGHT.png']);
-     
+    
     tic
     
     %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -39,7 +40,7 @@ for i =8:numsubs        % for each subject
     if truediag(i,1) == 0   
         % If the true diagnosis is healthy and your estimated diagnosis is
         % correct, the Dice will be 1. Otherwise, the Dice will be 0.
-        if estdiag(i,1) == 0    
+        if estdiag(i,1) == 0  
             dices(i,1) = 1;
         else
             dices(i,1) = 0;
